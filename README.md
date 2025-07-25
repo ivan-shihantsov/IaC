@@ -6,5 +6,5 @@
 2. [Kubernetes one-master installation with kubeadm](https://github.com/ivan-shihantsov/k8sss/tree/main/one-master-kubeadm)
 
 ### Terraform
-1. [AWS install 3-Layer Architecture](1/)
+1. [AWS install 3-Layer Architecture](aws-N-layer/)
 
