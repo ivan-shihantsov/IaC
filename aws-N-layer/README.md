@@ -1,5 +1,7 @@
 # AWS install 3-Layer Architecture with Terraform
 
+![do not forget to update pic when update the scheme file](res/scheme.png "initial scheme") <br>
+
 ### Create AWS access keys (manually)
 
 1. IAM -> User groups -> create group "testgroup" with policies
