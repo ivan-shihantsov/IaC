@@ -55,12 +55,14 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashi
 # finally Install Terraform from the new PPA repository
 sudo apt update
 sudo apt install terraform
+
+# run it only once
+terraform init
 ```
 
 ### Apply terraform file for main goal
 
 ```
-terraform init                              # only once
 terraform plan
 terraform apply
 ```
