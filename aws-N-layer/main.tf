@@ -217,3 +217,108 @@ resource "aws_route_table_association" "database_assoc_b" {
   route_table_id = aws_route_table.x-prod-RT-db.id
 }
 
+# ----------------------------------------
+
+# create Security Group for Bastion host & allow SSH and ICMP traffic
+resource "aws_security_group" "x-prod-bastion-ssh-SG" {
+  name = "x-prod-bastion-ssh-SG"
+  description = "Allow TLS inbound traffic and all outbound traffic"
+  vpc_id = aws_vpc.vpc-x-prod.id
+
+  ingress {
+    description = "Allow all ICMP"
+    from_port = -1
+    to_port = -1
+    protocol = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Allow all SSH"
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "x-prod-bastion-ssh-SG"
+  }
+}
+
+# key pair for Bastion
+resource "aws_key_pair" "x-prod-bastion-key" {
+  key_name = "x-prod-bastion-key"
+  public_key = file("~/.ssh/my-key.pub")
+}
+
+# Launch Template - based on Amazon Linux 2023 kernel-6.1 AMI
+resource "aws_launch_template" "x-prod-bastion-LC" {
+  name = "x-prod-bastion-LC"
+  image_id = "ami-0a72753edf3e631b7"
+  instance_type = "t2.micro"
+  key_name = aws_key_pair.x-prod-bastion-key.key_name
+
+  network_interfaces {
+    security_groups = [aws_security_group.x-prod-bastion-ssh-SG.id]
+    associate_public_ip_address = true
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+
+    tags = {
+      Name = "x-prod-bastion"
+    }
+  }
+}
+
+# ASG with 1 instance of Bastion
+resource "aws_autoscaling_group" "x-prod-bastion-ASG" {
+  name = "x-prod-bastion-ASG"
+  vpc_zone_identifier = [aws_subnet.x-prod-net-pub-A.id, aws_subnet.x-prod-net-pub-B.id]
+  desired_capacity = 1
+  max_size = 1
+  min_size = 1
+
+  launch_template {
+    id = aws_launch_template.x-prod-bastion-LC.id
+    version = "$Latest"
+  }
+}
+
+# ----------------------------------------
+
+# create test EC2 instance in private-a Subnet (App Tier)
+resource "aws_instance" "EC2-priv-A" {
+  ami = "ami-0a72753edf3e631b7"
+  instance_type = "t2.micro"
+  key_name = "x-prod-bastion-key"
+  vpc_security_group_ids = [aws_security_group.x-prod-bastion-ssh-SG.id]
+  subnet_id = aws_subnet.x-prod-net-priv-A.id
+
+  tags = {
+    Name = "EC2-priv-A"
+  }
+}
+
+# create test EC2 instance in db-b Subnet (DB Tier)
+resource "aws_instance" "EC2-db-B" {
+  ami = "ami-0a72753edf3e631b7"
+  instance_type = "t2.micro"
+  key_name = "x-prod-bastion-key"
+  vpc_security_group_ids = [aws_security_group.x-prod-bastion-ssh-SG.id]
+  subnet_id = aws_subnet.x-prod-net-db-B.id
+
+  tags = {
+    Name = "EC2-db-B"
+  }
+}
+

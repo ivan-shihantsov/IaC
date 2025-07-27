@@ -58,6 +58,9 @@ sudo apt install terraform
 
 # run it only once
 terraform init
+
+# prepare key for Launch Template (Auto Scaling Group for Bastion Host)
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/my-key
 ```
 
 ### Apply terraform file for main goal
@@ -66,4 +69,29 @@ terraform init
 terraform plan
 terraform apply
 ```
+
+This will took about 10 minutes <br>
+And 2 test servers will be created: <br>
+* EC2-priv-A (Subnet: x-prod-net-priv-A
+* EC2-db-B (Subnet: x-prod-net-db-B)
+both with security group 'x-prod-bastion-ssh-SG' and key pair 'x-prod-bastion-key'
+
+
+### Let's test it
+
+* connect to our instances
+    * bastion (Public) - copy Public IPv4
+        * ssh -i ~/.ssh/my-key ec2-user@3.89.62.120
+        * ping 8.8.8.8 # ping OK
+        * touch key.pem
+        * chmod 600 key.pem
+        * insert the content of priv key ~/.ssh/my-key
+    * Private (enter from bastion) - copy Private IPv4
+        * ssh -i ~/key.pem ec2-user@10.0.12.243
+        * ping 8.8.8.8 # ping OK
+    * DB (enter from bastion) - copy Private IPv4
+        * ssh -i ~/key.pem ec2-user@10.0.23.144
+        * ping 8.8.8.8 # ping NOT OK
+
+Feel free to create your Auto Scaling Groups in all tiers and to run as many EC2 instances as you need for your tasks
 
